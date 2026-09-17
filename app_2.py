@@ -2,168 +2,110 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
-import plotly.graph_objects as go
 
-st.set_page_config(page_title="FanRadar Manager-Game", layout="wide")
+st.set_page_config(page_title="FanRadar Planspiel", layout="wide")
 
-# --- HEADER & MODUS-WAHL ---
-st.title("⚽ FanRadar Manager-Game: Strategic Club Decision Engine")
+# --- 1. GAME STATE INITIALISIERUNG ---
+if 'saison' not in st.session_state:
+    st.session_state.saison = 1
+    st.session_state.max_saisons = 4
+    st.session_state.budget = 250000
+    st.session_state.history = []
+    st.session_state.game_finished = False
 
-mode = st.radio("🎮 Simulator-Modus wählen:", 
-                ["Studierende (Geführte Szenarien & Lerneffekte)", 
-                 "Vereins-Vorstand (Interaktives Multi-Year Management)"], 
-                horizontal=True)
+# --- 2. KOPFZEILE & FORTSCHRITT ---
+st.title("⚽ FanRadar: Strategisches Vereins-Planspiel")
 
-st.markdown("---")
-
-# --- SIDEBAR: OPERATIVE ZAHNRÄDER (DECISIONS) ---
-st.sidebar.header("🕹️ Operative Stellschrauben")
-
-# Zahnrad 1: Akquise
-st.sidebar.subheader("1. Akquise-Kanal & Budget")
-acq_budget = st.sidebar.slider("Marketing-Budget (€)", 10000, 200000, 50000, step=10000)
-acq_focus = st.sidebar.selectbox("Fokus des Kanals", 
-                                ["Breitensport & Nachwuchs", "Performance & Social Media", "Equal Pay & Werte-Kommunikation"])
-
-# Zahnrad 2: Pricing & Produkte
-st.sidebar.subheader("2. Pricing & Stadion")
-price_m = st.sidebar.slider("Ticketpreis Männer (€)", 15, 60, 30)
-price_w = st.sidebar.slider("Ticketpreis Frauen (€)", 5, 30, 12)
-merch_focus = st.sidebar.select_slider("Merchandising-Ausrichtung", options=["Basis (Klassisch)", "Balanced", "Nachhaltig & Premium"])
-
-# Zahnrad 3: Haltung & Sponsoring
-st.sidebar.subheader("3. Sponsoring & Haltung")
-sponsor_type = st.sidebar.selectbox("Hauptsponsor-Kategorie", 
-                                   ["Regionaler Mittelstand", "Global Player (Wettanbieter/Krypto)", "Nachhaltiges/Werte-Unternehmen"])
-equal_pay_commitment = st.sidebar.slider("Equal Pay / Frauen-Investment (% vom Männer-Merch)", 0, 50, 10)
-
-# --- ZAHNRAD-LOGIK & BERECHNUNGEN ---
-
-# Baseline Fan-Verteilung
-fans_tradition = 5000
-fans_opportunist = 3000
-fans_values = 2000
-
-# WIRKUNG AKQUISE (Verschiebung der Cluster)
-if acq_focus == "Breitensport & Nachwuchs":
-    new_tradition = int(acq_budget / 10)
-    new_opp = int(acq_budget / 20)
-    new_val = int(acq_budget / 40)
-elif acq_focus == "Performance & Social Media":
-    new_tradition = int(acq_budget / 50)
-    new_opp = int(acq_budget / 8)
-    new_val = int(acq_budget / 25)
-else: # Equal Pay & Werte
-    new_tradition = int(acq_budget / 40)
-    new_opp = int(acq_budget / 30)
-    new_val = int(acq_budget / 7)
-
-total_trad = fans_tradition + new_tradition
-total_opp = fans_opportunist + new_opp
-total_val = fans_values + new_val
-total_fans = total_trad + total_opp + total_val
-
-# WIRKUNG PRICING & EINSTELLUNGEN (Besuchs-Häufigkeit & WTP)
-# Traditionsfans: Preissensibel bei Männern, neutral bei Frauen
-visits_trad_m = np.clip(15 - (price_m - 25) * 0.3, 5, 17)
-visits_trad_w = 2
-
-# Opportunisten: Reagieren stark auf Leistung/Sponsor, nicht so preissensibel
-visits_opp_m = np.clip(8 - (price_m - 35) * 0.1, 1, 15)
-visits_opp_w = 3 if price_w <= 15 else 1
-
-# Werte-Fans: Reagieren extrem positiv auf Equal Pay & Nachhaltigkeit, boykottieren Krypto/Wetten
-val_multiplier = 1.5 if sponsor_type == "Nachhaltiges/Werte-Unternehmen" else (0.4 if sponsor_type == "Global Player (Wettanbieter/Krypto)" else 1.0)
-visits_val_m = np.clip((6 + equal_pay_commitment * 0.1) * val_multiplier, 0, 17)
-visits_val_w = np.clip((8 + equal_pay_commitment * 0.2) * val_multiplier, 0, 17)
-
-# UMSATZ-BERECHNUNG
-revenue_tickets_m = (total_trad * visits_trad_m + total_opp * visits_opp_m + total_val * visits_val_m) * price_m
-revenue_tickets_w = (total_trad * visits_trad_w + total_opp * visits_opp_w + total_val * visits_val_w) * price_w
-
-merch_spend_per_head = {"Basis (Klassisch)": 15, "Balanced": 25, "Nachhaltig & Premium": 40}[merch_focus]
-revenue_merch = total_fans * merch_spend_per_head * (0.8 if sponsor_type == "Global Player (Wettanbieter/Krypto)" and acq_focus == "Equal Pay & Werte-Kommunikation" else 1.0)
-
-sponsorship_base = {"Regionaler Mittelstand": 300000, "Global Player (Wettanbieter/Krypto)": 800000, "Nachhaltiges/Werte-Unternehmen": 500000}[sponsor_type]
-total_revenue = revenue_tickets_m + revenue_tickets_w + revenue_merch + sponsorship_base
-
-# RESILIENZ-INDEX (0 - 100%)
-# Je ausgewogener das Portfolio und je höher die Loyalität, desto krisenfester
-resilience_score = int(np.clip((total_trad * 0.5 + total_val * 0.4 + (100 - price_m) * 10) / (total_fans / 100), 20, 98))
-
-# --- DASHBOARD ANZEIGE ---
-
-# KPI Cards
-col1, col2, col3, col4 = st.columns(4)
-col1.metric("Gesamt-Fans", f"{total_fans:,}".replace(",", "."))
-col2.metric("Gesamtertrag (€)", f"{int(total_revenue):,}".replace(",", "."))
-col3.metric("Ticket-Umsatz Frauen (€)", f"{int(revenue_tickets_w):,}".replace(",", "."))
-col4.metric("Klub-Resilienz Index", f"{resilience_score} / 100")
-
-st.markdown("---")
-
-# DASHBOARD TABS
-tab1, tab2, tab3 = st.tabs(["📊 Fan-Portfolio & Dynamik", "💰 Ertragsquellen", "🚨 Szenario- & Krisentest"])
-
-with tab1:
-    col_a, col_b = st.columns(2)
+if st.session_state.game_finished:
+    st.success("🎉 **Planspiel abgeschlossen!** Hier ist deine Bilanz über 4 Saisons:")
     
-    with col_a:
-        st.subheader("Entstandenes Fan-Portfolio")
-        df_cluster = pd.DataFrame({
-            "Fantyp": ["Traditions-Fans", "Opportunisten", "Werte-/Equal-Pay-Fans"],
-            "Anzahl": [total_trad, total_opp, total_val]
-        })
-        fig_pie = px.pie(df_cluster, values="Anzahl", names="Fantyp", color="Fantyp",
-                         color_discrete_map={"Traditions-Fans": "#1f77b4", "Opportunisten": "#ff7f0e", "Werte-/Equal-Pay-Fans": "#2ca02c"})
-        st.plotly_chart(fig_pie, use_container_width=True)
-        
-    with col_b:
-        st.subheader("Stadionbesuche pro Jahr (Ø pro Kopf)")
-        df_visits = pd.DataFrame({
-            "Fantyp": ["Tradition", "Opportunist", "Werte-Fan"],
-            "Männer-Spiele": [visits_trad_m, visits_opp_m, visits_val_m],
-            "Frauen-Spiele": [visits_trad_w, visits_opp_w, visits_val_w]
-        })
-        fig_bar = px.bar(df_visits, x="Fantyp", y=["Männer-Spiele", "Frauen-Spiele"], barmode="group")
-        st.plotly_chart(fig_bar, use_container_width=True)
+    df_res = pd.DataFrame(st.session_state.history)
+    st.dataframe(df_res, use_container_width=True)
+    
+    fig = px.line(df_res, x="Saison", y=["Umsatz (€)", "Gesamtbudget (€)"], markers=True, title="Entwicklung über die Jahre")
+    st.plotly_chart(fig, use_container_width=True)
+    
+    if st.button("🔄 Neues Spiel starten"):
+        st.session_state.saison = 1
+        st.session_state.budget = 250000
+        st.session_state.history = []
+        st.session_state.game_finished = False
+        st.rerun()
+    st.stop()
 
-with tab2:
-    st.subheader("Zusammensetzung der Einnahmen")
-    df_rev = pd.DataFrame({
-        "Quelle": ["Tickets Männer", "Tickets Frauen", "Merchandising", "Sponsoring"],
-        "Betrag (€)": [revenue_tickets_m, revenue_tickets_w, revenue_merch, sponsorship_base]
+# Status-Display
+col_stat1, col_stat2, col_stat3 = st.columns(3)
+col_stat1.metric("Aktuelle Runde", f"Saison {st.session_state.saison} von {st.session_state.max_saisons}")
+col_stat2.metric("Verfügbares Budget", f"{int(st.session_state.budget):,} €".replace(",", "."))
+col_stat3.progress(st.session_state.saison / st.session_state.max_saisons, text="Saison-Fortschritt")
+
+st.markdown("---")
+
+# --- 3. EREIGNIS/SZENARIO FÜR DIE AKTUELLE RUONDE ---
+szenarien = {
+    1: "📌 **Saison 1 - Basis-Positionierung:** Lege die Grundlagen für Preissetzung, Fan-Akquise und Sponsoring fest.",
+    2: "🏆 **Saison 2 - Frauen-EM Hype:** Das Interesse an Frauenfußball steigt stark an. Equal-Pay-Initiativen wirken dieses Jahr besonders stark.",
+    3: "📉 **Saison 3 - Preissensibilität & Inflation:** Die Fans reagieren empfindlicher auf Preiserhöhungen im Männerbereich.",
+    4: "⚡ **Saison 4 - Sponsoren-Entscheidung:** Dein Hauptsponsor verlangt klare Ergebnisse bei Reichweite oder Nachhaltigkeit."
+}
+
+st.info(szenarien[st.session_state.saison])
+
+# --- 4. RUNDEN-EINSTELLUNGEN (DEIN UI-DESIGN) ---
+st.subheader(f"⚙️ Stellschrauben für Saison {st.session_state.saison}")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    zielgruppe_groesse = st.slider("Zielgruppen-Reichweite (Marketing-Investment)", 1, 10, 3, help="Bestimmt den Aufwand für Fan-Akquise")
+    anteil_leistungssport = st.slider("Anteil Frauenfußball-Investment (%)", 0, 50, 15, help="Prozentualer Re-Investment-Satz")
+
+with col2:
+    einteilung_sorgfalt = st.select_slider(
+        "Aktivierungs-Fokus", 
+        options=["Pragmatisch (Wenig Aufwand)", "Balanced", "Perfekt Segmentiert (Hohe Kosten)"],
+        help="Tiefe der Fan-Segmentierung"
+    )
+    preis_ticket = st.slider("Preis pro Ticket / Stunde (€)", 15, 60, 30)
+
+st.markdown("---")
+
+# --- 5. RUONDEN-BUTTON (EXAKT WIE AUF DEINEM SCREENSHOT) ---
+button_label = f"⏩ Jahr {st.session_state.saison} simulieren"
+
+if st.button(button_label, type="primary"):
+    # BERECHNUNG DER RUONDE
+    marketing_cost = zielgruppe_groesse * 15000
+    segmentation_cost = {"Pragmatisch (Wenig Aufwand)": 5000, "Balanced": 15000, "Perfekt Segmentiert (Hohe Kosten)": 35000}[einteilung_sorgfalt]
+    
+    # Formel für Einnahmen basierend auf Runden-Variablen
+    base_demand = (100 - preis_ticket) * 150
+    hype_factor = 1.5 if st.session_state.saison == 2 else 1.0
+    
+    revenue = (base_demand * preis_ticket * (1 + anteil_leistungssport / 100)) * hype_factor
+    profit = revenue - (marketing_cost + segmentation_cost)
+    
+    # BUDGET UPDATEN
+    st.session_state.budget += profit
+    
+    # HISTORIE SPEICHERN
+    st.session_state.history.append({
+        "Saison": f"Jahr {st.session_state.saison}",
+        "Ticketpreis (€)": preis_ticket,
+        "Umsatz (€)": revenue,
+        "Gewinn/Verlust (€)": profit,
+        "Gesamtbudget (€)": st.session_state.budget
     })
-    fig_rev = px.bar(df_rev, x="Quelle", y="Betrag (€)", color="Quelle", text_auto='.2s')
-    st.plotly_chart(fig_rev, use_container_width=True)
-
-with tab3:
-    st.subheader("Szenario-Simulation: Der Belastungstest")
-    scenario = st.selectbox("Wähle ein Krisenszenario für die Saisonevaluierung:", 
-                            ["Keine Krise (Normalbetrieb)", 
-                             "Krise A: Hauptsponsor gerät in Imageskandal", 
-                             "Krise B: Sportlicher Abstiegskampf Männer", 
-                             "Krise C: Preiserhöhung löst Fan-Protest aus"])
     
-    if scenario == "Krise A: Hauptsponsor gerät in Imageskandal":
-        if sponsor_type == "Global Player (Wettanbieter/Krypto)":
-            st.error("💥 **Schwere Auswirkung:** Die Werte-Fans boykottieren die Spiele komplett! Merch-Umsatz bricht um 40% ein.")
-            st.metric("Neuer Gesamtertrag nach Krise", f"{int(total_revenue - revenue_merch * 0.4 - revenue_tickets_w * 0.5):,} €".replace(",", "."))
-        else:
-            st.success("✅ **Geringe Auswirkung:** Dank deines seriösen Sponsors bleibt der Reputationsschaden minimal.")
-            
-    elif scenario == "Krise B: Sportlicher Abstiegskampf Männer":
-        st.warning("⚠️ **Gefahr:** Die Opportunisten bleiben im Männerstadion weg.")
-        loss = (total_opp * visits_opp_m * 0.6) * price_m
-        st.metric("Neuer Gesamtertrag nach Krise", f"{int(total_revenue - loss):,} €".replace(",", "."))
-        st.info("💡 **Strategie-Tipp:** Klubs mit hohem Frauenfußball-Besuch und starken Werte-Fans kompensieren diesen Verlust deutlich besser.")
+    # WEITERZÄHLEN ODER BEENDEN
+    if st.session_state.saison < st.session_state.max_saisons:
+        st.session_state.saison += 1
+    else:
+        st.session_state.game_finished = True
+        
+    st.rerun()
 
-# WAS-WÄRE-WENN LERN-HINWEISE (Für Studierende)
-if "Studierende" in mode:
-    st.markdown("---")
-    st.subheader("💡 Learning Insights")
-    st.info(f"""
-    * **Zahnrad Akquise & Fantyp:** Durch deinen Fokus auf **'{acq_focus}'** hast du primär den Typ **'{df_cluster.iloc[df_cluster['Anzahl'].idxmax()]['Fantyp']}'** aufgebaut.
-    * **Equal Pay & Sponsoring Wechselwirkung:** Dein Equal-Pay Investment von **{equal_pay_commitment}%** harmoniert am besten mit einem werteorientierten Sponsor. 
-    * **Resilienz:** Ein Resilienz-Score von **{resilience_score}/100** zeigt, wie stark deine Fanbase bei sportlichen oder wirtschaftlichen Krisen hinter dem Verein steht.
-    """)
+# --- 6. BISHERIGER VERLAUF (TABELLE DARUNTER) ---
+if st.session_state.history:
+    st.subheader("📋 Bisherige Saisonergebnisse")
+    st.table(pd.DataFrame(st.session_state.history))
