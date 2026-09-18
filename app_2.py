@@ -29,7 +29,7 @@ def init_game_state():
 init_game_state()
 
 # --- 2. HEADER & SPIELENDE ---
-st.title("⚽ FanRadar: Komplexe Vereins- & Markt-Simulation")
+st.title("⚽ FanRadar: Vereins- & Markt-Simulation")
 
 if st.session_state.game_finished:
     st.balloons()
@@ -72,7 +72,7 @@ szenarien = {
 }
 
 st.info(szenarien.get(st.session_state.saison, "Saison läuft..."))
-st.subheader(f"⚙️ Umfassende Management-Stellschrauben (Saison {st.session_state.saison})")
+st.subheader(f"⚙️ Management-KPIs (Saison {st.session_state.saison})")
 
 # --- 4. VOLLER UMFANG: 12 DIFFERENZIERTE STELLSCHRAUBEN ---
 c1, c2, c3, c4 = st.columns(4)
