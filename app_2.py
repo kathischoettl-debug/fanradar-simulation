@@ -5,18 +5,17 @@ import plotly.express as px
 
 st.set_page_config(page_title="FanRadar Strategic Engine", layout="wide")
 
-# --- 1. INITIALISIERUNG DES KOMPLEXEN GAME-STATES ---
+# --- 1. INITIALISIERUNG DES GAME-STATES (INKL. BRIEFING-STATUS) ---
 def init_game_state():
     default_values = {
+        'game_started': False,          # Steuert das Onboarding
         'saison': 1,
         'max_saisons': 4,
         'budget': 350000,
-        # Die 4 empirischen Sozialisations-Cluster (Start-Verteilung)
         'cluster_social_local': 1065,
         'cluster_broadly_socialized': 882,
         'cluster_media_socialized': 885,
         'cluster_low_pathway': 747,
-        # Formale Bindungsquoten (Startwerte)
         'dauerkarten_besitzer': 580,
         'vereinsmitglieder': 920,
         'history': [],
@@ -28,7 +27,91 @@ def init_game_state():
 
 init_game_state()
 
-# --- 2. HEADER & SPIELENDE ---
+# --- 2. VORGESCHALTETE ÜBERSICHTSSEITE / BRIEFING ---
+if not st.session_state.game_started:
+    st.title("⚽ FanRadar: Führungskraft-Briefing & Spielanleitung")
+    st.markdown("---")
+    
+    st.subheader("📋 Deine Rolle als Management-Verantwortliche/r")
+    st.write(
+        "Willkommen im Management-Team! Du übernahmst die strategische Verantwortung für die Ausrichtung "
+        "und die wirtschaftliche Entwicklung des Vereins über die nächsten 4 Saisons. Deine Aufgabe ist es, "
+        "das **Klub-Budget**, die **Fanbase-Wachstumsraten** und die **institutionelle Bindung** (Mitglieder & Dauerkarten) "
+        "nachhaltig zu optimieren sowie auf externe Krisen und Haltungsthemen zu reagieren."
+    )
+    
+    st.markdown("---")
+    st.subheader("👥 Die 4 Fan-Cluster & ihre Relevanz")
+    
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown("**Social-Local Fans**")
+        st.caption("Einfluss durch Familie, Region & Stadionerlebnis")
+        st.write("• **Besuchsfrequenz:** Hoch (~6,1 Spiele/Jahr)")
+        st.write("• **Bindung:** Hohe Mitgliedschafts- und Dauerkartenquote.")
+        st.write("• **Notfall-Support:** Hohe Hilfe- und Spendenbereitschaft in Krisen.")
+        
+        st.markdown("**Media-Socialized Fans**")
+        st.caption("Sozialisation über Online-Medien, Social Media & Streams")
+        st.write("• **Besuchsfrequenz:** Niedrig (~2,8 Spiele/Jahr)")
+        st.write("• **Bindung:** Eher geringe Bindung an den Verein.")
+        st.write("• **Wirkung:** Generieren schnelle Reichweite, aber wenig Stadionumsatz.")
+        
+    with c2:
+        st.markdown("**Broadly Socialized Fans**")
+        st.caption("Breite Aktivierung über nahezu alle Touchpoints")
+        st.write("• **Besuchsfrequenz:** Höchste Frequenz (~6,7 Spiele/Jahr)")
+        st.write("• **Bindung:** Höchste Mitglieds- (35%) und Dauerkartenquote (21%).")
+        st.write("• **Notfall-Support:** Stärkster Rückhalt in finanziellen Notlagen.")
+        
+        st.markdown("**Low-Pathway Fans**")
+        st.caption("Geringe Ausprägung über die klassischen Zugangswege")
+        st.write("• **Besuchsfrequenz:** Niedrig (~2,8 Spiele/Jahr)")
+        st.write("• **Bindung:** Geringe formale Vereinsbindung.")
+        st.write("• **Wirkung:** Reagieren stark auf Ticketpreise; schwer dauerhaft zu halten.")
+
+    st.markdown("---")
+    st.subheader("🛠️ Die Steuerungsinstrumente & ihre Effekte")
+    
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "1. Touchpoint-Investitionen", 
+        "2. Pricing & Struktur", 
+        "3. Community & Bindung", 
+        "4. Haltung & Sponsoring"
+    ])
+    
+    with tab1:
+        st.markdown("**Akquise & Neukunden-Kanäle:**")
+        st.write("• **Soziale & Lokale Wege:** Wächst primär das *Social-Local*-Cluster. Schafft loyale Stadionbesucher.")
+        st.write("• **Mediale Wege:** Gewinnt schnell *Media-Socialized*-Fans. Erhöht die digitale Reichweite zu geringeren Akquisekosten per Fan.")
+        st.write("• **Organisierte Fankultur:** Stärkt den Bereich der *Broadly Socialized*-Fans und baut die langfristige Fanbasis aus.")
+        
+    with tab2:
+        st.markdown("**Preispolitik & Einnahmehebel:**")
+        st.write("• **Tageskartenpreis:** Hohe Preise steigern den Ertrag pro Spiel, senken jedoch die Frequenz (starke Preissensibilität bei Medialen & Low-Pathway-Fans).")
+        st.write("• **Dauerkartenpreis:** Hohe Preise dämpfen die Neukauf-Quote, sichern aber planbaren Umsatz.")
+        st.write("• **Equal-Pay-Aufschlag:** Wird von ca. 36,4 % der Fans akzeptiert. Hohe Beträge bergen Churn-Risiken, wenn keine aktive SWO-Kommunikation stattfindet.")
+        
+    with tab3:
+        st.markdown("**Verankerung & Formale Bindung:**")
+        st.write("• **Mitgliedsbeitrag:** Bringt stetigen Ertrag. Zu hohe Beiträge verringern den Beitritt neuer Mitglieder.")
+        st.write("• **Mitglieder-Vorteile & CRM:** Hohe CRM-Sorgfalt verbessert die Effizienz des Marketing-Budgets und steigert die Mitgliedsquote.")
+        st.write("• **Merch-Ausrichtung:** Sustainable & Premium erhöht den Ertrag pro Kopf, erfordert aber höhere Vorab-Investitionen.")
+        
+    with tab4:
+        st.markdown("**Positionierung & Partnerschaften:**")
+        st.write("• **SWO-Kommunikation (Support Women's Opportunity):** Aktiviert die Werte-Orientierung der Fanbase und erhöht die Akzeptanz von Equal-Pay-Aufschlägen.")
+        st.write("• **Sponsoring-Profil:** Bestimmt den garantierten Ertrag. Wettanbieter bringen viel Geld, passen aber nicht zu Sustainable-Ansätzen.")
+
+    st.markdown("---")
+    if st.button("🚀 Simulation jetzt starten", type="primary", use_container_width=True):
+        st.session_state.game_started = True
+        st.rerun()
+        
+    st.stop()
+
+# --- 3. AB HIER: SIMULATIONS-DASHBOARD ---
+
 st.title("⚽ FanRadar: Vereins- & Markt-Simulation")
 
 if st.session_state.game_finished:
@@ -63,7 +146,7 @@ m6.metric("Mitglieder-Quote", f"{round((st.session_state.vereinsmitglieder / tot
 st.progress(st.session_state.saison / st.session_state.max_saisons)
 st.markdown("---")
 
-# --- 3. EXTERNE SZENARIEN & SZENARIO-KONTEXT ---
+# --- 4. EXTERNE SZENARIEN ---
 szenarien = {
     1: "📌 **Saison 1 - Touchpoint-Aufbau & Positionierung:** Setze das Grundfundament über Kanäle, Ticketpreise und Bindungsinstrumente.",
     2: "⚠️ **Saison 2 - Existenzielle Notlage (1860-Szenario):** Der Klub benötigt außerordentliche Hilfe zur Lizenzsicherung. Deine Bindungs-Cluster entscheiden über die Spendenbereitschaft!",
@@ -72,9 +155,9 @@ szenarien = {
 }
 
 st.info(szenarien.get(st.session_state.saison, "Saison läuft..."))
-st.subheader(f"⚙️ Management-KPIs (Saison {st.session_state.saison})")
+st.subheader(f"⚙️ Management-Steuerungsinstrumente (Saison {st.session_state.saison})")
 
-# --- 4. VOLLER UMFANG: 12 DIFFERENZIERTE STELLSCHRAUBEN ---
+# --- 5. STELLER & STRATEGIE-VARIABLEN ---
 c1, c2, c3, c4 = st.columns(4)
 
 with c1:
@@ -109,22 +192,18 @@ with c4:
 
 st.markdown("---")
 
-# --- 5. BERECHNUNGS-ENGINE (EMPIRISCH FUNDIERT) ---
+# --- 6. SIMULATIONS-LOGIK ---
 if st.button(f"⏩ Saison {st.session_state.saison} simulieren", type="primary"):
     
-    # Cost Accounting
     total_marketing_invest = inv_social_local + inv_media + inv_fankultur
     crm_cost = {"Pragmatisch": 5000, "Standard": 15000, "Präzises CRM": 35000}[profiling_depth]
     crm_efficiency = {"Pragmatisch": 0.85, "Standard": 1.0, "Präzises CRM": 1.25}[profiling_depth]
     
-    # A. SOZIALISATIONS-NEUZUWÄCHSE
     d_social_local = int((inv_social_local / 12) * crm_efficiency)
     d_media = int((inv_media / 10) * crm_efficiency)
     d_broadly = int(((inv_social_local * 0.4 + inv_media * 0.4 + inv_fankultur * 0.5) / 15) * crm_efficiency)
     d_low = int((inv_media / 35))
 
-    # B. FORMALE BINDUNG (DAUERKARTEN & MITGLIEDSCHAFTEN)
-    # Empirisch: Broadly & Social-Local besitzen deutlich häufiger Dauerkarten & Mitgliedschaften
     dk_rate = (st.session_state.cluster_broadly_socialized * 0.211 +
                st.session_state.cluster_social_local * 0.194 +
                st.session_state.cluster_media_socialized * 0.049 +
@@ -135,23 +214,18 @@ if st.button(f"⏩ Saison {st.session_state.saison} simulieren", type="primary")
                   st.session_state.cluster_media_socialized * 0.183 +
                   st.session_state.cluster_low_pathway * 0.180)
     
-    # Preiselastizität auf Bindung
     dk_price_factor = max(0.6, 1.0 - (price_dauerkarte - 350) * 0.0015)
     member_price_factor = max(0.6, 1.0 - (member_fee - 60) * 0.003)
     
     new_dk = int(dk_rate * dk_price_factor)
     new_members = int(member_rate * member_price_factor)
 
-    # C. STADIONBESUCHE & TICKET-REVENUE
-    # Empirische Besuche/Jahr: Social-Local: 6.13 | Broadly: 6.65 | Media: 2.76 | Low-Pathway: 2.79
     price_penalty = max(0.5, 1.0 - (price_tageskarte - 30) * 0.012)
-    
     vis_sl = 6.13 * price_penalty
     vis_br = 6.65 * price_penalty
     vis_med = 2.76 * price_penalty
     vis_low = 2.79 * price_penalty
     
-    # Tageskartenkäufe (Gesamtbesuche abzüglich Abdeckung durch Dauerkarten)
     total_single_tickets = max(0, (
         st.session_state.cluster_social_local * vis_sl +
         st.session_state.cluster_broadly_socialized * vis_br +
@@ -159,21 +233,17 @@ if st.button(f"⏩ Saison {st.session_state.saison} simulieren", type="primary")
         st.session_state.cluster_low_pathway * vis_low
     ) - (new_dk * 17))
     
-    # Equal-Pay Akzeptanz auf Tageskarten
     accept_rate = 0.364 if equal_pay_surcharge > 0 else 1.0
     if swo_focus == "Aktive SWO-Förderung (Support Women's Opportunity)":
-        accept_rate += 0.18 # Booster durch aktivierte SWO-Motive
+        accept_rate += 0.18
         
     effective_tageskarte_price = price_tageskarte + (equal_pay_surcharge * accept_rate)
     rev_tageskarten = total_single_tickets * effective_tageskarte_price
     rev_dauerkarten = new_dk * price_dauerkarte
     rev_mitglieder = new_members * member_fee
 
-    # D. NOTHILFE-SZONARIO (SAISON 2)
     rev_nothilfe = 0
     if st.session_state.saison == 2:
-        # Spendenbereitschaft: Broadly (76.2%), Social-Local (61.2%), Media (58.8%), Low (46.0%)
-        # Mitglieder spenden mit 1.797-fach höheren Odds!
         member_booster = 1.3 if (new_members / total_fans) > 0.25 else 1.0
         rev_nothilfe = (
             (st.session_state.cluster_broadly_socialized * 0.762 * 60) +
@@ -181,21 +251,18 @@ if st.button(f"⏩ Saison {st.session_state.saison} simulieren", type="primary")
             (st.session_state.cluster_media_socialized * 0.588 * 20) +
             (st.session_state.cluster_low_pathway * 0.460 * 10)
         ) * member_booster
-        st.toast(f"🚨 Nothilfe-Aktion erfolgreich: {int(rev_nothilfe):,} € wurden durch die Fanbase gespendet!")
+        st.toast(f"🚨 Nothilfe-Aktion erfolgreich: {int(rev_nothilfe):,} € Spenden generiert!")
 
-    # E. MERCHANDISING & SPONSORING
     merch_spend = 40 if merch_sustainability == "Nachhaltig & Premium" else 22
     rev_merch = total_fans * merch_spend
     
     sponsor_base = {"Regionaler Mittelstand (500k €)": 500000, "Wettanbieter / Krypto (900k €)": 900000, "Nachhaltigkeits-Brand (650k €)": 650000}[sponsoring_partner]
     rev_sponsoring = sponsor_base
 
-    # TOTALS
     rev_total = rev_tageskarten + rev_dauerkarten + rev_mitglieder + rev_merch + rev_sponsoring + rev_nothilfe
-    exp_total = total_marketing_invest + crm_cost + 380000 # Betriebskosten
+    exp_total = total_marketing_invest + crm_cost + 380000
     profit = rev_total - exp_total
     
-    # STATE UPDATE
     st.session_state.cluster_social_local += d_social_local
     st.session_state.cluster_broadly_socialized += d_broadly
     st.session_state.cluster_media_socialized += d_media
@@ -225,7 +292,7 @@ if st.button(f"⏩ Saison {st.session_state.saison} simulieren", type="primary")
         
     st.rerun()
 
-# --- 6. BISHERIGE VERLAUFSTABELLE ---
+# --- 7. HISTORIE ---
 if st.session_state.history:
     st.subheader("📋 Historie der Saisonergebnisse")
     st.table(pd.DataFrame(st.session_state.history))
