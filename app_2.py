@@ -34,7 +34,7 @@ if not st.session_state.game_started:
     
     st.subheader("📋 Deine Rolle als Management-Verantwortliche/r")
     st.write(
-        "Willkommen im Management-Team! Du übernahmst die strategische Verantwortung für die Ausrichtung "
+        "Willkommen im Management-Team! Du bist mitverantwortlich für die strategische Verantwortung für die Ausrichtung "
         "und die wirtschaftliche Entwicklung des Vereins über die nächsten 4 Saisons. Deine Aufgabe ist es, "
         "das **Klub-Budget**, die **Fanbase-Wachstumsraten** und die **institutionelle Bindung** (Mitglieder & Dauerkarten) "
         "nachhaltig zu optimieren sowie auf externe Krisen und Haltungsthemen zu reagieren."
